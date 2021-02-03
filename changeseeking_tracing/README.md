@@ -1,10 +1,12 @@
-== Change-Seeking Iterative Tracing ==
+Change-Seeking Iterative Tracing
+================================
 
 This component applies change-seeking iterative tracing to trace newly
 constructed roads that are visible in the new satellite image, but neither
 appear in the current map dataset nor are visible in the old satellite image.
 
-== Setup ==
+Setup
+-----
 
 tensorflow-gpu 1.15 is needed to run this code.
 
@@ -28,14 +30,16 @@ Then you should run:
 
 	go run angle_tiles.go region 0 0 2 2
 
-== Training ==
+Training
+--------
 
 Once the files are setup, training is straightforward:
 
 	mkdir model model/model_latest model/model_best
 	python run_m6.py
 
-== Inference ==
+Inference
+---------
 
 To run inference in some new tile, e.g. region_5_5_sat.jpg:
 
