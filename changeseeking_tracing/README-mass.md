@@ -29,3 +29,9 @@ To run inference:
 	python tile-graphs.py graphs/mass-withall.graph tile-graphs/
 	# Update infer_change.py TILE_LIST to e.g. [(0, 0)]
 	python infer_change.py
+
+We can visualize the inferred graph:
+
+	go run vis.go graphs/mass-withall.graph 0_0.graph 0 0
+
+The 0_0.graph and last two arguments should correspond to the tile x,y that we inferred.
