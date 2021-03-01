@@ -22,7 +22,7 @@ tileloader.tile_dir = [
 	'./imagery-new/',
 ]
 tileloader.graph_dir = './graphs/'
-tileloader.angles_dir = './angles/'
+#tileloader.angles_dir = './angles/'
 tileloader.pytiles_path = './pytiles.json'
 tileloader.startlocs_path = './starting_locations.json'
 # list of tiles like imagery-{old,new}/mass_0_0.jpg where we should trace roads
@@ -316,7 +316,10 @@ if __name__ == '__main__':
 
 		path.graph.save('{}_{}.graph'.format(x, y))
 		edge_probs = []
-		for edge in ng.edges:
-			edge_probs.append(int(edge.prob * 100))
+		for edge in path.graph.edges:
+			if hasattr(edge, 'prob'):
+				edge_probs.append(int(edge.prob * 100))
+			else:
+				edge_probs.append(0)
 		with open('{}_{}.json'.format(x, y), 'w') as f:
 			json.dump(edge_probs, f)

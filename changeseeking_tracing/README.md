@@ -8,7 +8,7 @@ appear in the current map dataset nor are visible in the old satellite image.
 Setup
 -----
 
-tensorflow-gpu 1.15 is needed to run this code.
+tensorflow-gpu 1.15 with Python 2.7 is needed to run this code.
 
 The expected data format for satellite images and road network graphs is the
 same as for https://github.com/mitroadmaps/roadtracer-beta. There are detailed
@@ -28,6 +28,7 @@ Here, the arguments are the bounding box for the tiles, e.g. if you have four im
 
 Then you should run:
 
+	mkdir angles
 	go run angle_tiles.go region 0 0 2 2
 
 Training
@@ -37,6 +38,9 @@ Once the files are setup, training is straightforward:
 
 	mkdir model model/model_latest model/model_best
 	python run_m6.py
+
+You can stop the training when the loss stops decreasing for 20 or so iterations.
+It currently will not stop automatically.
 
 Inference
 ---------

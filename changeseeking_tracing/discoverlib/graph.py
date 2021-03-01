@@ -251,7 +251,7 @@ def read_graph(fname, merge_duplicates=False, fpoint=False, verbose=True):
 				if len(parts) >= 2:
 					point = point_obj(float(parts[0]), float(parts[1]))
 					if point in seen_points and merge_duplicates:
-						if verbose: print 'merging duplicate vertex at {}'.format(point)
+						if verbose: print('merging duplicate vertex at {}'.format(point))
 						vertices[next_vertex_id] = seen_points[point]
 					else:
 						vertex = graph.add_vertex(point)
@@ -264,7 +264,7 @@ def read_graph(fname, merge_duplicates=False, fpoint=False, verbose=True):
 				src = vertices[int(parts[0])]
 				dst = vertices[int(parts[1])]
 				if src == dst and merge_duplicates:
-					if verbose: print 'ignoring self edge at {}'.format(src.point)
+					if verbose: print('ignoring self edge at {}'.format(src.point))
 					continue
 				graph.add_edge(src, dst)
 	return graph

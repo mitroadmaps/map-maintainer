@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"math"
 	"os"
+	"runtime"
 	"strconv"
 )
 
@@ -155,7 +156,10 @@ func main() {
 	}
 
 	fmt.Println("launching workers")
-	n := 36
+	n := runtime.NumCPU()
+	if n > 32 {
+		n = 32
+	}
 	taskCh := make(chan Task)
 	doneCh := make(chan bool)
 	for threadID := 0; threadID < n; threadID++ {
