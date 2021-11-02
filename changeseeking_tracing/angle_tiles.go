@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"math"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strconv"
 )
@@ -29,9 +30,11 @@ func main() {
 	sy, _ := strconv.Atoi(os.Args[3])
 	ex, _ := strconv.Atoi(os.Args[4])
 	ey, _ := strconv.Atoi(os.Args[5])
+	graphDir := os.Args[6]
+	angleDir := os.Args[7]
 
 	fmt.Println("reading graph")
-	graph, err := common.ReadGraph(fmt.Sprintf("./graphs/%s.graph", region))
+	graph, err := common.ReadGraph(filepath.Join(graphDir, region+".graph"))
 	if err != nil {
 		panic(err)
 	}
@@ -150,7 +153,7 @@ func main() {
 				buf.Write([]byte(values[i][j][:]))
 			}
 		}
-		if err := ioutil.WriteFile(fmt.Sprintf("./angles/%s.bin", task.Label), buf.Bytes(), 0644); err != nil {
+		if err := ioutil.WriteFile(filepath.Join(angleDir, task.Label+".bin"), buf.Bytes(), 0644); err != nil {
 			panic(err)
 		}
 	}

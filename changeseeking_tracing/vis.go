@@ -6,12 +6,13 @@ import (
 
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 )
 
-func vis(basemap *common.Graph, inferred *common.Graph, x int, y int) {
+func vis(basemap *common.Graph, inferred *common.Graph, satPath string, x int, y int) {
 	outFname := fmt.Sprintf("%d_%d.jpg", x, y)
-	satFname := fmt.Sprintf("imagery-new/mass_%d_%d_sat.jpg", x, y)
+	satFname := filepath.Join(satPath, fmt.Sprintf("mass_%d_%d_sat.jpg", x, y))
 
 	im := image.ReadImage(satFname)
 	tilePoint := common.Point{float64(x), float64(y)}.Scale(4096)
@@ -38,8 +39,9 @@ func vis(basemap *common.Graph, inferred *common.Graph, x int, y int) {
 func main() {
 	baseFname := os.Args[1]
 	fname := os.Args[2]
-	x, _ := strconv.Atoi(os.Args[2])
-	y, _ := strconv.Atoi(os.Args[3])
+	satPath := os.Args[3]
+	x, _ := strconv.Atoi(os.Args[4])
+	y, _ := strconv.Atoi(os.Args[5])
 
 	basemap, err := common.ReadGraph(baseFname)
 	if err != nil {
@@ -50,5 +52,5 @@ func main() {
 		panic(err)
 	}
 
-	vis(basemap, inferred, x, y)
+	vis(basemap, inferred, satPath, x, y)
 }

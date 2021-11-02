@@ -126,7 +126,7 @@ class Path(object):
 		return True
 
 	def push(self, extension_vertex, angle_outputs, segment_length, training=True, branch_threshold=0.2, follow_threshold=0.2, allow_reconnect=True, force_reconnect=False, point_reconnect=False):
-		if DEBUG: print 'extending from {}'.format(extension_vertex.point)
+		if DEBUG: print('extending from {}'.format(extension_vertex.point))
 		max_angle = numpy.max(angle_outputs)
 
 		if force_reconnect and allow_reconnect and len(extension_vertex.in_edges) >= 1:
@@ -153,7 +153,7 @@ class Path(object):
 						best_vertex = vertex
 						best_distance = distance
 			if best_vertex is not None:
-				if DEBUG: print '... push: force reconnect with existing vertex at {}'.format(best_vertex.point)
+				if DEBUG: print('... push: force reconnect with existing vertex at {}'.format(best_vertex.point))
 
 				if self.gc is not None:
 					# mark path up to best_vertex as explored
@@ -167,7 +167,7 @@ class Path(object):
 					if probs is not None:
 						best_rs = graph.mm_best_rs(self.gc.road_segments, probs)
 						rs_list = graph.mm_follow_backpointers(self.gc.road_segments, best_rs.id, backpointers)
-						if DEBUG: print '... push: force reconnect: marking explored rs: {}'.format([rs.id for rs in rs_list[2:]])
+						if DEBUG: print('... push: force reconnect: marking explored rs: {}'.format([rs.id for rs in rs_list[2:]]))
 						for rs in set(rs_list[2:] + [best_rs]):
 							self.mark_rs_explored(rs)
 
@@ -175,7 +175,7 @@ class Path(object):
 				return
 
 		if max_angle < follow_threshold or (max_angle < branch_threshold and len(extension_vertex.out_edges) >= 2) or len(extension_vertex.out_edges) > 4:
-			if DEBUG: print '... push: decided to stop'
+			if DEBUG: print('... push: decided to stop')
 
 			if self.gc is not None and len(extension_vertex.out_edges) >= 1:
 				# stop; we should mark path explored
@@ -184,7 +184,7 @@ class Path(object):
 				if probs is not None:
 					best_rs = graph.mm_best_rs(self.gc.road_segments, probs)
 					rs_list = graph.mm_follow_backpointers(self.gc.road_segments, best_rs.id, backpointers)
-					if DEBUG: print '... push: stop, so marking rs explored: ({})'.format([rs.id for rs in rs_list[2:] + [best_rs]])
+					if DEBUG: print('... push: stop, so marking rs explored: ({})'.format([rs.id for rs in rs_list[2:] + [best_rs]]))
 					for rs in set([rs for rs in rs_list[2:] if rs != best_rs]):
 						self.mark_rs_explored(rs)
 					best_pos = best_rs.closest_pos(extension_vertex.point)
@@ -246,7 +246,7 @@ class Path(object):
 							best_distance = distance'''
 				if best_vertex is not None:
 					edge, proj_point = best_vertex
-					if DEBUG: print '... push: decided to reconnect with existing vertex at {}'.format(proj_point)
+					if DEBUG: print('... push: decided to reconnect with existing vertex at {}'.format(proj_point))
 					new_vertex = self.graph.add_vertex(proj_point)
 					if hasattr(edge.src, 'edge_pos'):
 						new_vertex.edge_pos = edge.src.edge_pos
@@ -263,7 +263,7 @@ class Path(object):
 						if probs is not None:
 							best_rs = graph.mm_best_rs(self.gc.road_segments, probs)
 							rs_list = graph.mm_follow_backpointers(self.gc.road_segments, best_rs.id, backpointers)
-							if DEBUG: print '... push: reconnect: marking explored rs: {}'.format([rs.id for rs in rs_list[2:]])
+							if DEBUG: print('... push: reconnect: marking explored rs: {}'.format([rs.id for rs in rs_list[2:]]))
 							for rs in set(rs_list[2:] + [best_rs]):
 								self.mark_rs_explored(rs)
 
@@ -295,7 +295,7 @@ class Path(object):
 				path_to_next = self.get_path_to(next_vertex)
 				probs, backpointers = graph.mapmatch(self.gc.edge_index, self.gc.road_segments, self.gc.edge_to_rs, [vertex.point for vertex in path_to_next], segment_length)
 				if probs is not None:
-					if DEBUG: print '... push: mm probs: {}'.format(probs)
+					if DEBUG: print('... push: mm probs: {}'.format(probs))
 					best_rs = graph.mm_best_rs(self.gc.road_segments, probs)
 					best_pos = best_rs.closest_pos(next_vertex.point)
 
@@ -304,16 +304,16 @@ class Path(object):
 						next_vertex.edge_pos = best_pos
 						if len(path_to_next) >= 10:
 							rs_list = graph.mm_follow_backpointers(self.gc.road_segments, best_rs.id, backpointers)
-							if DEBUG: print '... push: mm: {}'.format([rs.id for rs in rs_list])
+							if DEBUG: print('... push: mm: {}'.format([rs.id for rs in rs_list]))
 							if in_bounds:
-								if DEBUG: print '... push: normal extend, marking explored rs: {}'.format([rs.id for rs in rs_list[2:5] if rs not in rs_list[5:]])
+								if DEBUG: print('... push: normal extend, marking explored rs: {}'.format([rs.id for rs in rs_list[2:5] if rs not in rs_list[5:]]))
 								for rs in rs_list[2:4]:
 									if rs in rs_list[4:]:
 										# don't mark edges along rs that we might still be following as explored
 										continue
 									self.mark_rs_explored(rs)
 							else:
-								if DEBUG: print '... push: normal extend but out of bounds, marking explored rs: {}'.format([rs.id for rs in rs_list[2:] + [best_rs]])
+								if DEBUG: print('... push: normal extend but out of bounds, marking explored rs: {}'.format([rs.id for rs in rs_list[2:] + [best_rs]]))
 								for rs in set(rs_list[2:] + [best_rs]):
 									self.mark_rs_explored(rs)
 					else:
@@ -341,7 +341,7 @@ def get_unexplored_graph(path, extension_vertex, origin, segment_length, window_
 
 	def draw(rs, distance, remaining):
 		start_edge_idx = rs.distance_to_edge(distance, return_idx=True)
-		for edge_idx in xrange(start_edge_idx, len(rs.edges)):
+		for edge_idx in range(start_edge_idx, len(rs.edges)):
 			edge = rs.edges[edge_idx]
 			edge_distance = distance - rs.edge_distances[edge.id]
 
@@ -433,7 +433,7 @@ def get_unexplored_graph2(path, extension_vertex, origin, segment_length, window
 
 	def draw(rs, distance, remaining, is_explored=False):
 		start_edge_idx = rs.distance_to_edge(distance, return_idx=True)
-		for edge_idx in xrange(start_edge_idx, len(rs.edges)):
+		for edge_idx in range(start_edge_idx, len(rs.edges)):
 			edge = rs.edges[edge_idx]
 			edge_distance = distance - rs.edge_distances[edge.id]
 
@@ -474,7 +474,7 @@ def get_unexplored_graph2(path, extension_vertex, origin, segment_length, window
 	return tile
 
 def get_compact_path_input(path, extension_vertex, window_size=512):
-	origin = extension_vertex.point.sub(geom.Point(window_size/2, window_size/2))
+	origin = extension_vertex.point.sub(geom.Point(window_size//2, window_size//2))
 	rect = origin.bounds().extend(origin.add(geom.Point(window_size, window_size)))
 
 	path_segments = []
@@ -501,10 +501,10 @@ def get_angle_onehot(size):
 		return static_angle_onehots[size]
 
 	x = numpy.zeros((size, size, 64), dtype='float32')
-	for i in xrange(size):
-		for j in xrange(size):
-			di = i - size/2
-			dj = j - size/2
+	for i in range(size):
+		for j in range(size):
+			di = i - size//2
+			dj = j - size//2
 			a = int((math.atan2(dj, di) - math.atan2(0, 1) + math.pi) * 64 / 2 / math.pi)
 			if a >= 64:
 				a = 63
@@ -526,7 +526,7 @@ def uncompact_path_input(d):
 			tile_path[p.x, p.y] = 1.0
 
 	tile_graph = numpy.zeros((d['window_size'], d['window_size']), dtype='float32')
-	tile_graph_small = numpy.zeros((d['window_size']/4, d['window_size']/4), dtype='float32')
+	tile_graph_small = numpy.zeros((d['window_size']//4, d['window_size']//4), dtype='float32')
 	for segment in d['gt_segments']:
 		for p in geom.draw_line(segment.start.sub(d['origin']), segment.end.sub(d['origin']), geom.Point(d['window_size'], d['window_size'])):
 			tile_graph[p.x, p.y] = 1.0
@@ -536,19 +536,19 @@ def uncompact_path_input(d):
 			tile_graph_small[p_small.x, p_small.y] = 1.0
 
 	tile_point = numpy.zeros((d['window_size'], d['window_size']), dtype='float32')
-	#tile_point[d['window_size']/2, d['window_size']/2] = 1.0
+	#tile_point[d['window_size']//2, d['window_size']//2] = 1.0
 
 	input = numpy.concatenate([tile_big, tile_path.reshape(d['window_size'], d['window_size'], 1), tile_point.reshape(d['window_size'], d['window_size'], 1)], axis=2)
 	detect_target = tile_graph_small
-	return input, detect_target.reshape(d['window_size']/4, d['window_size']/4, 1)
+	return input, detect_target.reshape(d['window_size']//4, d['window_size']//4, 1)
 
 def make_path_input(path, extension_vertex, segment_length, fname=None, green_points=None, blue_points=None, angle_outputs=None, angle_targets=None, action_outputs=None, action_targets=None, detect_output=None, detect_mode='normal', window_size=512):
 	big_origin = path.tile_data['rect'].start
 	big_ims = path.tile_data['cache'].get(path.tile_data['region'], path.tile_data['rect'])
 
-	if not path.tile_data['rect'].add_tol(-window_size/2).contains(extension_vertex.point):
+	if not path.tile_data['rect'].add_tol(-window_size//2).contains(extension_vertex.point):
 		raise Exception('bad path {}'.format(path))
-	origin = extension_vertex.point.sub(geom.Point(window_size/2, window_size/2))
+	origin = extension_vertex.point.sub(geom.Point(window_size//2, window_size//2))
 	tile_origin = origin.sub(big_origin)
 	rect = origin.bounds().extend(origin.add(geom.Point(window_size, window_size)))
 
@@ -565,10 +565,10 @@ def make_path_input(path, extension_vertex, segment_length, fname=None, green_po
 	#tile_path = geom.draw_lines(draw_segments, shape=(window_size, window_size)).astype('float32')
 
 	tile_point = numpy.zeros((window_size, window_size), dtype='float32')
-	#tile_point[window_size/2, window_size/2] = 1.0
+	#tile_point[window_size//2, window_size//2] = 1.0
 
 	tile_graph = numpy.zeros((window_size, window_size), dtype='float32')
-	tile_graph_small = numpy.zeros((window_size/4, window_size/4), dtype='float32')
+	tile_graph_small = numpy.zeros((window_size//4, window_size//4), dtype='float32')
 	if path.gc is not None:
 		for edge in path.gc.edge_index.search(rect):
 			start = edge.src.point
@@ -588,7 +588,7 @@ def make_path_input(path, extension_vertex, segment_length, fname=None, green_po
 	#		draw_segments.append(geom.Segment(start, end))
 	#		draw_segments_sm.append(geom.Segment(start.scale(0.25), end.scale(0.25)))
 	#	tile_graph = geom.draw_lines(draw_segments, shape=(window_size, window_size)).astype('float32')
-	#	tile_graph_small = geom.draw_lines(draw_segments_sm, shape=(window_size/4, window_size/4)).astype('float32')
+	#	tile_graph_small = geom.draw_lines(draw_segments_sm, shape=(window_size//4, window_size//4)).astype('float32')
 
 	inputs = []
 	big_inputs = [v for k, v in big_ims.items() if k.startswith('input')]
@@ -627,10 +627,10 @@ def make_path_input(path, extension_vertex, segment_length, fname=None, green_po
 					p = p.sub(origin)
 					x[p.x-2:p.x+2, p.y-2:p.y+2, 2] = 1.0
 			if angle_outputs is not None or angle_targets is not None:
-				for i in xrange(window_size):
-					for j in xrange(window_size):
-						di = i - window_size/2
-						dj = j - window_size/2
+				for i in range(window_size):
+					for j in range(window_size):
+						di = i - window_size//2
+						dj = j - window_size//2
 						d = math.sqrt(di * di + dj * dj)
 						a = int((math.atan2(dj, di) - math.atan2(0, 1) + math.pi) * 64 / 2 / math.pi)
 						if a >= 64:
@@ -651,7 +651,7 @@ def make_path_input(path, extension_vertex, segment_length, fname=None, green_po
 						if path.is_explored(edge):
 							x[p.x, p.y, 1] = 1.0
 
-			x[window_size/2-3:window_size/2+3, window_size/2-3:window_size/2+3, 1] = 1.0
+			x[window_size//2-3:window_size//2+3, window_size//2-3:window_size//2+3, 1] = 1.0
 
 			Image.fromarray(numpy.swapaxes((x * 255.0).astype('uint8'), 0, 1)).save(fname + 'path.png')
 		if True:
@@ -684,10 +684,10 @@ def make_path_input(path, extension_vertex, segment_length, fname=None, green_po
 					x[p.x, p.y, 0] = 0.0
 
 			if angle_outputs is not None or angle_targets is not None:
-				for i in xrange(window_size):
-					for j in xrange(window_size):
-						di = i - window_size/2
-						dj = j - window_size/2
+				for i in range(window_size):
+					for j in range(window_size):
+						di = i - window_size//2
+						dj = j - window_size//2
 						d = math.sqrt(di * di + dj * dj)
 						a = int((math.atan2(dj, di) - math.atan2(0, 1) + math.pi) * 64 / 2 / math.pi)
 						if a >= 64:
@@ -703,8 +703,8 @@ def make_path_input(path, extension_vertex, segment_length, fname=None, green_po
 							x[i, j, 1] = angle_targets[a]
 							x[i, j, 2] = 0
 
-			x[window_size/2-3:window_size/2+3, window_size/2-3:window_size/2+3, 2] = 1.0
-			x[window_size/2-3:window_size/2+3, window_size/2-3:window_size/2+3, 0:2] = 0
+			x[window_size//2-3:window_size//2+3, window_size//2-3:window_size//2+3, 2] = 1.0
+			x[window_size//2-3:window_size//2+3, window_size//2-3:window_size//2+3, 0:2] = 0
 
 			viz_points = helper_compute_viz_points(path, extension_vertex, segment_length)
 			if viz_points is not None:
@@ -716,13 +716,13 @@ def make_path_input(path, extension_vertex, segment_length, fname=None, green_po
 
 			Image.fromarray(numpy.swapaxes((x * 255.0).astype('uint8'), 0, 1)).save(fname + 'overlay.png')
 
-	return input, detect_target.reshape(window_size/4, window_size/4, 1)
+	return input, detect_target.reshape(window_size//4, window_size//4, 1)
 
 def vector_from_angle(angle, scale=100):
 	return geom.Point(math.cos(angle) * scale, math.sin(angle) * scale)
 
 #cached_bucket_vectors = {}
-#for bucket in xrange(64):
+#for bucket in range(64):
 #	angle = bucket * math.pi * 2 / 64.0 - math.pi
 #	cached_bucket_vectors[(bucket, 20)] = vector_from_angle(angle, 20)
 
@@ -738,7 +738,7 @@ def compute_targets_by_best(path, extension_vertex, segment_length):
 	allow_reconnect = False
 
 	def best_angle_to_pos(pos):
-		angle_points = [get_next_point(extension_vertex.point, angle_bucket, segment_length) for angle_bucket in xrange(64)]
+		angle_points = [get_next_point(extension_vertex.point, angle_bucket, segment_length) for angle_bucket in range(64)]
 		distances = [angle_point.distance(pos.point()) for angle_point in angle_points]
 		point_angle = numpy.argmin(distances) * math.pi * 2 / 64.0 - math.pi
 		edge_angle = geom.Point(1, 0).signed_angle(pos.edge.segment().vector())
@@ -747,7 +747,7 @@ def compute_targets_by_best(path, extension_vertex, segment_length):
 		return int((avg_angle + math.pi) * 64.0 / math.pi / 2)
 
 	def set_angle_bucket_soft(target_bucket):
-		for offset in xrange(31):
+		for offset in range(31):
 			clockwise_bucket = (target_bucket + offset) % 64
 			counterclockwise_bucket = (target_bucket + 64 - offset) % 64
 			for bucket in [clockwise_bucket, counterclockwise_bucket]:
@@ -759,7 +759,7 @@ def compute_targets_by_best(path, extension_vertex, segment_length):
 		for edge in extension_vertex.out_edges:
 			edge_angle = geom.Point(1, 0).signed_angle(edge.segment().vector())
 			edge_bucket = int((edge_angle + math.pi) * 64.0 / math.pi / 2)
-			for offset in xrange(3):
+			for offset in range(3):
 				clockwise_bucket = (edge_bucket + offset) % 64
 				counterclockwise_bucket = (edge_bucket + 64 - offset) % 64
 				bad_buckets.add(clockwise_bucket)
@@ -813,7 +813,7 @@ def compute_targets_by_best(path, extension_vertex, segment_length):
 				potential_rs.append(opposite_rs2)
 				if opposite_rs1 != opposite_rs2:
 					if opposite_rs1 is None:
-						print 'warning: using opposite_rs2 for rs {}'.format(opposite_rs2.id)
+						print('warning: using opposite_rs2 for rs {}'.format(opposite_rs2.id))
 					else:
 						raise Exception('opposite_rs1 ({}) != opposite_rs2 ({})'.format(opposite_rs1.id, opposite_rs2.id))
 
@@ -856,22 +856,22 @@ def compute_targets_by_best(path, extension_vertex, segment_length):
 						allow_reconnect = True
 
 		if len(potential_rs) + 1 > len(extension_vertex.out_edges):
-			if DEBUG: print '... compute_targets_by_best: potential_rs={}'.format([rs.id for rs in potential_rs])
+			if DEBUG: print('... compute_targets_by_best: potential_rs={}'.format([rs.id for rs in potential_rs]))
 			expected_positions = []
 			for rs in potential_rs:
 				pos = rs.closest_pos(extension_vertex.point)
 				if path.is_explored(pos):
 					continue
 				rs_follow_positions = graph.follow_graph(pos, segment_length, explored_node_pairs=path.explored_pairs)
-				if DEBUG: print '... compute_targets_by_best: rs {}: closest pos to extension point {} is on edge {}@{} at {}'.format(rs.id, extension_vertex.point, pos.edge.id, pos.distance, pos.point())
+				if DEBUG: print('... compute_targets_by_best: rs {}: closest pos to extension point {} is on edge {}@{} at {}'.format(rs.id, extension_vertex.point, pos.edge.id, pos.distance, pos.point()))
 				for rs_follow_pos in rs_follow_positions:
-					if DEBUG: print '... compute_targets_by_best: rs {}: ... {}@{} at {}'.format(rs.id, rs_follow_pos.edge.id, rs_follow_pos.distance, rs_follow_pos.point())
+					if DEBUG: print('... compute_targets_by_best: rs {}: ... {}@{} at {}'.format(rs.id, rs_follow_pos.edge.id, rs_follow_pos.distance, rs_follow_pos.point()))
 				expected_positions.extend(rs_follow_positions)
 			set_by_positions(expected_positions)
 		else:
-			if DEBUG: print '... compute_targets_by_best: found {} potential rs but already have {} outgoing edges'.format(len(potential_rs), len(extension_vertex.out_edges))
+			if DEBUG: print('... compute_targets_by_best: found {} potential rs but already have {} outgoing edges'.format(len(potential_rs), len(extension_vertex.out_edges)))
 	else:
-		if DEBUG: print '... compute_targets_by_best: edge_pos is None'
+		if DEBUG: print('... compute_targets_by_best: edge_pos is None')
 
 	return angle_targets, allow_reconnect
 
@@ -879,7 +879,7 @@ def compute_targets_by_cgan(path, extension_vertex, segment_length, angle_output
 	rotation_target = 64
 
 	def best_angle_to_pos(pos):
-		angle_points = [get_next_point(extension_vertex.point, angle_bucket, segment_length) for angle_bucket in xrange(64)]
+		angle_points = [get_next_point(extension_vertex.point, angle_bucket, segment_length) for angle_bucket in range(64)]
 		distances = [angle_point.distance(pos.point()) for angle_point in angle_points]
 		point_angle = numpy.argmin(distances) * math.pi * 2 / 64.0 - math.pi
 		edge_angle = geom.Point(1, 0).signed_angle(pos.edge.segment().vector())
@@ -917,14 +917,14 @@ def compute_targets_by_cgan(path, extension_vertex, segment_length, angle_output
 
 		if len(potential_rs) + 1 > len(extension_vertex.out_edges):
 			potential_rs = [rs for rs in potential_rs if not path.is_explored(rs.edges[0])]
-			if DEBUG: print '... compute_targets_by_best: potential_rs={}'.format([rs.id for rs in potential_rs])
+			if DEBUG: print('... compute_targets_by_best: potential_rs={}'.format([rs.id for rs in potential_rs]))
 			expected_positions = []
 			for rs in potential_rs:
 				pos = rs.closest_pos(extension_vertex.point)
 				rs_follow_positions = graph.follow_graph(pos, segment_length, explored_node_pairs=path.explored_pairs)
-				if DEBUG: print '... compute_targets_by_best: rs {}: closest pos to extension point {} is on edge {}@{} at {}'.format(rs.id, extension_vertex.point, pos.edge.id, pos.distance, pos.point())
+				if DEBUG: print('... compute_targets_by_best: rs {}: closest pos to extension point {} is on edge {}@{} at {}'.format(rs.id, extension_vertex.point, pos.edge.id, pos.distance, pos.point()))
 				for rs_follow_pos in rs_follow_positions:
-					if DEBUG: print '... compute_targets_by_best: rs {}: ... {}@{} at {}'.format(rs.id, rs_follow_pos.edge.id, rs_follow_pos.distance, rs_follow_pos.point())
+					if DEBUG: print('... compute_targets_by_best: rs {}: ... {}@{} at {}'.format(rs.id, rs_follow_pos.edge.id, rs_follow_pos.distance, rs_follow_pos.point()))
 				expected_positions.extend(rs_follow_positions)
 
 			angle_buckets = [best_angle_to_pos(pos) for pos in expected_positions]
@@ -933,7 +933,7 @@ def compute_targets_by_cgan(path, extension_vertex, segment_length, angle_output
 
 	rotation_amount = rotation_target - numpy.argmax(angle_outputs)
 	angle_targets = numpy.zeros((65,), dtype='float32')
-	for i in xrange(65):
+	for i in range(65):
 		angle_targets[i] = angle_outputs[(i - rotation_amount + 65) % 65]
 
 	angle_targets_copy = numpy.zeros((65,), dtype='float32')
@@ -979,25 +979,25 @@ def helper_compute_viz_points(path, extension_vertex, segment_length):
 		nx_points = []
 
 		if len(potential_rs) + 1 > len(extension_vertex.out_edges):
-			if DEBUG: print '... compute_targets_by_best: potential_rs={}'.format([rs.id for rs in potential_rs])
+			if DEBUG: print('... compute_targets_by_best: potential_rs={}'.format([rs.id for rs in potential_rs]))
 			expected_positions = []
 			for rs in potential_rs:
 				pos = rs.closest_pos(extension_vertex.point)
 				if path.is_explored(pos):
 					continue
 				rs_follow_positions = graph.follow_graph(pos, segment_length, explored_node_pairs=path.explored_pairs)
-				if DEBUG: print '... compute_targets_by_best: rs {}: closest pos to extension point {} is on edge {}@{} at {}'.format(rs.id, extension_vertex.point, pos.edge.id, pos.distance, pos.point())
+				if DEBUG: print('... compute_targets_by_best: rs {}: closest pos to extension point {} is on edge {}@{} at {}'.format(rs.id, extension_vertex.point, pos.edge.id, pos.distance, pos.point()))
 				for rs_follow_pos in rs_follow_positions:
-					if DEBUG: print '... compute_targets_by_best: rs {}: ... {}@{} at {}'.format(rs.id, rs_follow_pos.edge.id, rs_follow_pos.distance, rs_follow_pos.point())
+					if DEBUG: print('... compute_targets_by_best: rs {}: ... {}@{} at {}'.format(rs.id, rs_follow_pos.edge.id, rs_follow_pos.distance, rs_follow_pos.point()))
 				nx_points.extend([pos.point() for pos in rs_follow_positions])
 		else:
-			if DEBUG: print '... compute_targets_by_best: found {} potential rs but already have {} outgoing edges'.format(len(potential_rs), len(extension_vertex.out_edges))
+			if DEBUG: print('... compute_targets_by_best: found {} potential rs but already have {} outgoing edges'.format(len(potential_rs), len(extension_vertex.out_edges)))
 
 		return {
 			'mm': mm_point,
 			'nx': nx_points,
 		}
 	else:
-		if DEBUG: print '... compute_targets_by_best: edge_pos is None'
+		if DEBUG: print('... compute_targets_by_best: edge_pos is None')
 
 	return None

@@ -7,17 +7,18 @@ import numpy
 import os
 import random
 import rtree
-import scipy.ndimage
+import skimage.io
 import time
 
-vhr = False
-tile_dir = './imagery/'
-graph_dir = './graphs/'
+# This is now set in run_m6.py or infer_change.py.
+tile_dir = None
+graph_dir = None
 angles_dir = None
+TRAINING_REGIONS = []
+REGIONS = []
+
 tile_size = 4096
-window_size = 512
-TRAINING_REGIONS = ['indianapolis', 'louisville', 'columbus', 'milwaukee', 'minneapolis', 'seattle', 'portland', 'sf', 'san antonio', 'vegas', 'phoenix', 'dallas', 'austin', 'san jose', 'houston', 'miami', 'tampa', 'orlando', 'atlanta', 'st louis', 'nashville', 'dc', 'baltimore', 'philadelphia', 'london']
-REGIONS = TRAINING_REGIONS + ['chicago']
+window_size = 256
 
 def get_tile_dirs():
 	if isinstance(tile_dir, str):
@@ -27,7 +28,7 @@ def get_tile_dirs():
 
 def get_tile_keys():
 	keys = []
-	for i in xrange(len(get_tile_dirs())):
+	for i in range(len(get_tile_dirs())):
 		if i == 0:
 			keys.append('input')
 		else:
@@ -37,8 +38,8 @@ def get_tile_keys():
 def load_tile(region, i, j, mode='all'):
 	d = {}
 	for pathIdx, path in enumerate(get_tile_dirs()):
-		prefix = '{}/{}_{}_{}_'.format(path, region, i, j)
-		sat_im = scipy.ndimage.imread(prefix + 'sat.jpg')
+		prefix = os.path.join(path, '{}_{}_{}_'.format(region, i, j))
+		sat_im = skimage.io.imread(prefix + 'sat.jpg')
 		if sat_im.shape == (tile_size, tile_size, 4):
 			sat_im = sat_im[:, :, 0:3]
 		sat_im = sat_im.swapaxes(0, 1)
@@ -47,8 +48,9 @@ def load_tile(region, i, j, mode='all'):
 		else:
 			d['input{}'.format(pathIdx)] = sat_im
 	if angles_dir:
-		angle_im = numpy.fromfile('{}/{}_{}_{}.bin'.format(angles_dir, region, i, j), dtype='uint8')
-		angle_im = angle_im.reshape(tile_size/4, tile_size/4, 64)
+		angle_path = os.path.join(angles_dir, '{}_{}_{}.bin'.format(region, i, j))
+		angle_im = numpy.fromfile(angle_path, dtype='uint8')
+		angle_im = angle_im.reshape(tile_size//4, tile_size//4, 64)
 		d['angles'] = angle_im
 
 	return d
@@ -56,11 +58,11 @@ def load_tile(region, i, j, mode='all'):
 def load_rect(region, rect, load_func=load_tile, mode='all'):
 	# special case for fast load: rect is single tile
 	if rect.start.x % tile_size == 0 and rect.start.y % tile_size == 0 and rect.end.x % tile_size == 0 and rect.end.y % tile_size == 0 and rect.end.x - rect.start.x == tile_size and rect.end.y - rect.start.y == tile_size:
-		return load_func(region, rect.start.x / tile_size, rect.start.y / tile_size, mode=mode)
+		return load_func(region, rect.start.x // tile_size, rect.start.y // tile_size, mode=mode)
 
 	tile_rect = geom.Rectangle(
-		geom.Point(rect.start.x / tile_size, rect.start.y / tile_size),
-		geom.Point((rect.end.x - 1) / tile_size + 1, (rect.end.y - 1) / tile_size + 1)
+		geom.Point(rect.start.x // tile_size, rect.start.y // tile_size),
+		geom.Point((rect.end.x - 1) // tile_size + 1, (rect.end.y - 1) // tile_size + 1)
 	)
 	full_rect = geom.Rectangle(
 		tile_rect.start.scale(tile_size),
@@ -68,23 +70,23 @@ def load_rect(region, rect, load_func=load_tile, mode='all'):
 	)
 	full_ims = {}
 
-	for i in xrange(tile_rect.start.x, tile_rect.end.x):
-		for j in xrange(tile_rect.start.y, tile_rect.end.y):
+	for i in range(tile_rect.start.x, tile_rect.end.x):
+		for j in range(tile_rect.start.y, tile_rect.end.y):
 			p = geom.Point(i - tile_rect.start.x, j - tile_rect.start.y).scale(tile_size)
 			tile_ims = load_func(region, i, j, mode=mode)
 			for k, im in tile_ims.iteritems():
-				scale = tile_size / im.shape[0]
+				scale = tile_size // im.shape[0]
 				if k not in full_ims:
-					full_ims[k] = numpy.zeros((full_rect.lengths().x / scale, full_rect.lengths().y / scale, im.shape[2]), dtype='uint8')
-				full_ims[k][p.x/scale:(p.x+tile_size)/scale, p.y/scale:(p.y+tile_size)/scale, :] = im
+					full_ims[k] = numpy.zeros((full_rect.lengths().x // scale, full_rect.lengths().y // scale, im.shape[2]), dtype='uint8')
+				full_ims[k][p.x//scale:(p.x+tile_size)//scale, p.y//scale:(p.y+tile_size)//scale, :] = im
 
 	crop_rect = geom.Rectangle(
 		rect.start.sub(full_rect.start),
 		rect.end.sub(full_rect.start)
 	)
 	for k in full_ims:
-		scale = (full_rect.end.x - full_rect.start.x) / full_ims[k].shape[0]
-		full_ims[k] = full_ims[k][crop_rect.start.x/scale:crop_rect.end.x/scale, crop_rect.start.y/scale:crop_rect.end.y/scale, :]
+		scale = (full_rect.end.x - full_rect.start.x) // full_ims[k].shape[0]
+		full_ims[k] = full_ims[k][crop_rect.start.x//scale:crop_rect.end.x//scale, crop_rect.start.y//scale:crop_rect.end.y//scale, :]
 	return full_ims
 
 class TileCache(object):
@@ -116,8 +118,8 @@ class TileCache(object):
 		big_dict = self.get(region, big_rect)
 		small_dict = {}
 		for k, v in big_dict.items():
-			scale = tile_size / v.shape[0]
-			small_dict[k] = v[small_rect.start.x/scale:small_rect.end.x/scale, small_rect.start.y/scale:small_rect.end.y/scale, :]
+			scale = tile_size // v.shape[0]
+			small_dict[k] = v[small_rect.start.x//scale:small_rect.end.x//scale, small_rect.start.y//scale:small_rect.end.y//scale, :]
 		return small_dict
 
 def get_tile_list():
@@ -147,7 +149,7 @@ def get_input_channels_from_mode(tile_mode):
 
 class Tiles(object):
 	def __init__(self, paths_per_tile_axis, segment_length, parallel_tiles, tile_mode):
-		self.search_rect_size = tile_size / paths_per_tile_axis
+		self.search_rect_size = tile_size // paths_per_tile_axis
 		self.segment_length = segment_length
 		self.parallel_tiles = parallel_tiles
 		self.tile_mode = tile_mode
@@ -155,53 +157,33 @@ class Tiles(object):
 		# load tile list
 		# this is a list of point dicts (a point dict has keys 'x', 'y')
 		# don't include test tiles
-		print 'reading tiles'
+		print('reading tiles')
 		self.all_tiles = get_tile_list()
 		self.cache = TileCache(limit=self.parallel_tiles, mode=self.tile_mode)
 
-		self.gcs = {}
-
-	def get_gc(self, region):
-		if region in self.gcs:
-			return self.gcs[region]
-		fname = os.path.join(graph_dir, region + '.graph')
-		g = graph.read_graph(fname)
-		gc = graph.GraphContainer(g)
-		self.gcs[region] = gc
-		return gc
-
-	def cache_gcs(self, regions):
-		for region in regions:
-			print 'reading graph for region {}'.format(region)
-			self.get_gc(region)
-
 	def prepare_training(self):
-		self.cache_gcs(REGIONS)
-
 		def tile_filter(tile):
 			if tile.region not in REGIONS:
 				return False
 			return True
-		self.train_tiles = filter(tile_filter, self.all_tiles)
+		self.train_tiles = list(filter(tile_filter, self.all_tiles))
 
 		old_len = len(self.train_tiles)
 		self.train_tiles = [tile for tile in self.train_tiles if tile.region in TRAINING_REGIONS]
-		print 'go from {} to {} tiles after excluding regions'.format(old_len, len(self.train_tiles))
+		print('go from {} to {} tiles after excluding regions'.format(old_len, len(self.train_tiles)))
 		random.shuffle(self.train_tiles)
 
 	def get_tile_data(self, region, rect):
-		gc = self.get_gc(region)
 		midpoint = rect.start.add(rect.end.sub(rect.start).scale(0.5))
-		x = midpoint.x / tile_size
-		y = midpoint.y / tile_size
+		x = midpoint.x // tile_size
+		y = midpoint.y // tile_size
 		k = '{}_{}_{}'.format(region, x, y)
 		return {
 			'region': region,
 			'rect': rect,
-			'search_rect': rect.add_tol(-window_size/2),
+			'search_rect': rect.add_tol(-window_size//2),
 			'cache': self.cache,
 			'starting_locations': [],
-			'gc': gc,
 		}
 
 	def num_tiles(self):
@@ -218,8 +200,8 @@ class Tiles(object):
 		)
 
 		if tries < 3:
-			search_rect_x = random.randint(window_size/2, tile_size - window_size/2 - self.search_rect_size)
-			search_rect_y = random.randint(window_size/2, tile_size - window_size/2 - self.search_rect_size)
+			search_rect_x = random.randint(window_size//2, tile_size - window_size//2 - self.search_rect_size)
+			search_rect_y = random.randint(window_size//2, tile_size - window_size//2 - self.search_rect_size)
 			search_rect = geom.Rectangle(
 				rect.start.add(geom.Point(search_rect_x, search_rect_y)),
 				rect.start.add(geom.Point(search_rect_x, search_rect_y)).add(geom.Point(self.search_rect_size, self.search_rect_size)),
@@ -231,5 +213,4 @@ class Tiles(object):
 			'search_rect': search_rect,
 			'cache': self.cache,
 			'starting_locations': [],
-			'gc': self.gcs[tile.region],
 		}

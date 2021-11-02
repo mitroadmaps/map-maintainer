@@ -3,14 +3,15 @@ import os, os.path
 import sys
 
 graph_fname = sys.argv[1]
-out_dir = sys.argv[2]
+tile_dir = sys.argv[2]
+out_dir = sys.argv[3]
 
 print('reading graph')
 g = graph.read_graph(graph_fname)
 print('creating index')
 idx = g.edgeIndex()
 
-fnames = os.listdir('imagery-new')
+fnames = os.listdir(tile_dir)
 fnames = [fname.split('_') for fname in fnames if fname.endswith('.jpg')]
 
 # list of tuples (x, y) indicating tiles (like imagery-new/region_x_y.jpg) where we want to crop the graph

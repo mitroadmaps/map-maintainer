@@ -8,19 +8,25 @@ import os
 import os.path
 import random
 import scipy.ndimage
+import sys
 import tensorflow as tf
 import time
 
-# you may need to configure these paths
-MODEL_BASE = './model/'
+model_path = sys.argv[1]
+old_tile_path = sys.argv[2]
+new_tile_path = sys.argv[3]
+graph_path = sys.argv[4]
+angle_path = sys.argv[5]
+
+MODEL_BASE = model_path
 tileloader.REGIONS = ['mass']
 tileloader.TRAINING_REGIONS = tileloader.REGIONS
 tileloader.tile_dir = [
-	'./imagery-old/',
-	'./imagery-new/',
+	old_tile_path,
+	new_tile_path,
 ]
-tileloader.graph_dir = './graphs/'
-tileloader.angles_dir = './angles/'
+tileloader.graph_dir = graph_path
+tileloader.angles_dir = angle_path
 
 WINDOW_SIZE = 256
 NUM_TRAIN_TILES = 1024
@@ -41,19 +47,19 @@ num_val = len(train_tiles)//10
 val_tiles = train_tiles[0:num_val]
 train_tiles = train_tiles[num_val:]
 
-print 'pick {} train tiles from {}'.format(len(train_tiles), len(tiles.train_tiles))
+print('pick {} train tiles from {}'.format(len(train_tiles), len(tiles.train_tiles)))
 
 # initialize model and session
-print 'initializing model'
+print('initializing model')
 m = model.Model(input_channels=3, bn=True)
 session = tf.Session()
-model_path = MODEL_BASE + '/model_latest/model'
-best_path = MODEL_BASE + '/model_best/model'
+model_path = os.path.join(MODEL_BASE, 'model_latest/model')
+best_path = os.path.join(MODEL_BASE, 'model_best/model')
 if os.path.isfile(model_path + '.meta'):
-	print '... loading existing model'
+	print('... loading existing model')
 	m.saver.restore(session, model_path)
 else:
-	print '... initializing a new model'
+	print('... initializing a new model')
 	session.run(m.init_op)
 
 def get_tile_rect(tile):
@@ -69,7 +75,7 @@ def get_tile_example(tile, tries=10):
 	rect = get_tile_rect(tile)
 
 	# pick origin: must be multiple of the output scale
-	origin = geom.Point(random.randint(0, rect.lengths().x/4 - WINDOW_SIZE/4), random.randint(0, rect.lengths().y/4 - WINDOW_SIZE/4))
+	origin = geom.Point(random.randint(0, rect.lengths().x//4 - WINDOW_SIZE//4), random.randint(0, rect.lengths().y//4 - WINDOW_SIZE//4))
 	origin = origin.scale(4)
 	origin = origin.add(rect.start)
 
@@ -108,12 +114,12 @@ def get_example(traintest='train'):
 		if example is not None:
 			return example
 
-val_examples = [get_example('test') for _ in xrange(2048)]
+val_examples = [get_example('test') for _ in range(2048)]
 
 def vis_example(example, outputs=None):
 	x = numpy.zeros((WINDOW_SIZE, WINDOW_SIZE, 3), dtype='uint8')
 	x[:, :, :] = example['input'] * 255
-	x[WINDOW_SIZE/2-2:WINDOW_SIZE/2+2, WINDOW_SIZE/2-2:WINDOW_SIZE/2+2, :] = 255
+	x[WINDOW_SIZE//2-2:WINDOW_SIZE//2+2, WINDOW_SIZE//2-2:WINDOW_SIZE//2+2, :] = 255
 
 	gc = tiles.get_gc(example['region'])
 	rect = geom.Rectangle(example['origin'], example['origin'].add(geom.Point(WINDOW_SIZE, WINDOW_SIZE)))
@@ -124,10 +130,10 @@ def vis_example(example, outputs=None):
 			x[p.x, p.y, 0:2] = 0
 			x[p.x, p.y, 2] = 255
 
-	for i in xrange(WINDOW_SIZE):
-		for j in xrange(WINDOW_SIZE):
-			di = i - WINDOW_SIZE/2
-			dj = j - WINDOW_SIZE/2
+	for i in range(WINDOW_SIZE):
+		for j in range(WINDOW_SIZE):
+			di = i - WINDOW_SIZE//2
+			dj = j - WINDOW_SIZE//2
 			d = math.sqrt(di * di + dj * dj)
 			a = int((math.atan2(dj, di) - math.atan2(0, 1) + math.pi) * NUM_BUCKETS / 2 / math.pi)
 			if a >= NUM_BUCKETS:
@@ -135,27 +141,33 @@ def vis_example(example, outputs=None):
 			elif a < 0:
 				a = 0
 			elif d > 100 and d <= 120 and example['target'] is not None:
-				x[i, j, 0] = example['target'][WINDOW_SIZE/8, WINDOW_SIZE/8, a] * 255
-				x[i, j, 1] = example['target'][WINDOW_SIZE/8, WINDOW_SIZE/8, a] * 255
+				x[i, j, 0] = example['target'][WINDOW_SIZE//8, WINDOW_SIZE//8, a] * 255
+				x[i, j, 1] = example['target'][WINDOW_SIZE//8, WINDOW_SIZE//8, a] * 255
 				x[i, j, 2] = 0
 			elif d > 70 and d <= 90 and outputs is not None:
-				x[i, j, 0] = outputs[WINDOW_SIZE/8, WINDOW_SIZE/8, a] * 255
-				x[i, j, 1] = outputs[WINDOW_SIZE/8, WINDOW_SIZE/8, a] * 255
+				x[i, j, 0] = outputs[WINDOW_SIZE//8, WINDOW_SIZE//8, a] * 255
+				x[i, j, 1] = outputs[WINDOW_SIZE//8, WINDOW_SIZE//8, a] * 255
 				x[i, j, 2] = 0
 	return x
 
+def get_learning_rate(epoch):
+	if epoch < 100:
+		return 1e-4
+	else:
+		return 1e-5
+
 best_loss = None
 
-for epoch in xrange(9999):
+for epoch in range(200):
 	start_time = time.time()
 	train_losses = []
-	for _ in xrange(1024):
-		examples = [get_example('train') for _ in xrange(model.BATCH_SIZE)]
+	for _ in range(1024):
+		examples = [get_example('train') for _ in range(model.BATCH_SIZE)]
 		feed_dict = {
 			m.is_training: True,
 			m.inputs: [example['input'] for example in examples],
 			m.targets: [example['target'] for example in examples],
-			m.learning_rate: 1e-4,
+			m.learning_rate: get_learning_rate(epoch),
 		}
 		if MASK_NEAR_ROADS:
 			feed_dict[m.mask] = [example['mask'] for example in examples]
@@ -166,7 +178,7 @@ for epoch in xrange(9999):
 	train_time = time.time()
 
 	val_losses = []
-	for i in xrange(0, len(val_examples), model.BATCH_SIZE):
+	for i in range(0, len(val_examples), model.BATCH_SIZE):
 		examples = val_examples[i:i+model.BATCH_SIZE]
 		feed_dict = {
 			m.is_training: False,
@@ -181,7 +193,7 @@ for epoch in xrange(9999):
 	val_loss = numpy.mean(val_losses)
 	val_time = time.time()
 
-	print 'iteration {}: train_time={}, val_time={}, train_loss={}, val_loss={}/{}'.format(epoch, int(train_time - start_time), int(val_time - train_time), train_loss, val_loss, best_loss)
+	print('iteration {}: train_time={}, val_time={}, train_loss={}, val_loss={}/{}'.format(epoch, int(train_time - start_time), int(val_time - train_time), train_loss, val_loss, best_loss))
 
 	m.saver.save(session, model_path)
 	if best_loss is None or val_loss < best_loss:

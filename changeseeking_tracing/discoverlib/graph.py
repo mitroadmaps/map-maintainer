@@ -1,5 +1,5 @@
-import geom
-import grid_index
+from discoverlib import geom
+from discoverlib import grid_index
 
 import math
 import numpy
@@ -435,7 +435,7 @@ class RoadSegment(object):
 			l += edge.segment().length()
 
 	def distance_to_edge(self, distance, return_idx=False):
-		for i in xrange(len(self.edges)):
+		for i in range(len(self.edges)):
 			edge = self.edges[i]
 			distance -= edge.segment().length()
 			if distance <= 0:
@@ -463,7 +463,7 @@ class RoadSegment(object):
 			rs = edge_to_rs[edge.id]
 			if rs.id != self.id and rs.id not in rs_set:
 				rs_set[rs.id] = rs
-		return rs_set.values()
+		return list(rs_set.values())
 
 	def out_rs(self, edge_to_rs):
 		rs_set = {}
@@ -471,7 +471,7 @@ class RoadSegment(object):
 			rs = edge_to_rs[edge.id]
 			if rs.id != self.id and rs.id not in rs_set:
 				rs_set[rs.id] = rs
-		return rs_set.values()
+		return list(rs_set.values())
 
 	def get_opposite_rs(self, edge_to_rs):
 		for rs in self.out_rs(edge_to_rs):
@@ -604,9 +604,9 @@ def mapmatch(index, road_segments, edge_to_rs, points, segment_length):
 
 		return best_distance, best_rs_distance
 
-	backpointers = [{} for _ in xrange(len(points) - 1)]
+	backpointers = [{} for _ in range(len(points) - 1)]
 
-	for i in xrange(len(points) - 1):
+	for i in range(len(points) - 1):
 		next_probs = {}
 		for prev_rs_id in probs:
 			prev_p, prev_rs_distance = probs[prev_rs_id]
@@ -643,7 +643,7 @@ def mm_best_rs(road_segments, probs, rs_blacklist=None):
 
 def mm_follow_backpointers(road_segments, rs_id, backpointers):
 	rs_list = []
-	for i in xrange(len(backpointers) - 1, -1, -1):
+	for i in range(len(backpointers) - 1, -1, -1):
 		rs_id = backpointers[i][rs_id]
 		rs_list.append(road_segments[rs_id])
 	rs_list.reverse()
@@ -682,5 +682,5 @@ def get_nearby_vertices_by_distance(vertex, distance):
 def densify(g, length, epsilon=0.1):
 	for edge in g.edges:
 		n_split = int(edge.segment().length() / length - epsilon)
-		for i in xrange(n_split):
+		for i in range(n_split):
 			edge = g.split_edge(edge, length)

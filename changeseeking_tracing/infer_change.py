@@ -13,21 +13,26 @@ import sys
 import tensorflow as tf
 import time
 
-# you may need to configure these paths
-MODEL_PATH = './model/model_latest/model'
+model_path = sys.argv[1]
+old_tile_path = sys.argv[2]
+new_tile_path = sys.argv[3]
+graph_path = sys.argv[4]
+tile_graph_path = sys.argv[5]
+out_path = sys.argv[6]
+
+MODEL_PATH = model_path
 tileloader.REGIONS = ['mass']
 tileloader.TRAINING_REGIONS = tileloader.REGIONS
 tileloader.tile_dir = [
-	'./imagery-old/',
-	'./imagery-new/',
+	old_tile_path,
+	new_tile_path,
 ]
-tileloader.graph_dir = './graphs/'
-#tileloader.angles_dir = './angles/'
-tileloader.pytiles_path = './pytiles.json'
-tileloader.startlocs_path = './starting_locations.json'
-# list of tiles like imagery-{old,new}/mass_0_0.jpg where we should trace roads
-TILE_LIST = [(0, 0)]
-TILE_GRAPH_PATH = './tile-graphs/'
+tileloader.graph_dir = graph_path
+
+TILE_LIST = []
+for x in range(-13, 13):
+	for y in range(-22, -9):
+		TILE_LIST.append((x, y))
 
 MAX_PATH_LENGTH = 1000000
 SEGMENT_LENGTH = 20
@@ -52,7 +57,7 @@ def vector_to_action(extension_vertex, angle_outputs, threshold):
 	for edge in extension_vertex.out_edges:
 		angle = geom.Point(1, 0).signed_angle(edge.segment().vector())
 		bucket = int((angle + math.pi) * 64.0 / math.pi / 2)
-		for offset in xrange(6):
+		for offset in range(6):
 			clockwise_bucket = (bucket + offset) % 64
 			counterclockwise_bucket = (bucket + 64 - offset) % 64
 			blacklisted_buckets.add(clockwise_bucket)
@@ -84,7 +89,7 @@ def vector_to_action(extension_vertex, angle_outputs, threshold):
 	# any leftover targets above threshold?
 	best_bucket = None
 	best_value = None
-	for bucket in xrange(64):
+	for bucket in range(64):
 		if bucket in blacklisted_buckets:
 			continue
 		next_point = model_utils.get_next_point(extension_vertex.point, bucket, SEGMENT_LENGTH)
@@ -111,20 +116,20 @@ def eval(paths, m, session, max_path_length=MAX_PATH_LENGTH, segment_length=SEGM
 	angle_losses = []
 	detect_losses = []
 	losses = []
-	path_lengths = {path_idx: 0 for path_idx in xrange(len(paths))}
+	path_lengths = {path_idx: 0 for path_idx in range(len(paths))}
 
 	last_time = None
 	big_time = None
 
 	last_extended = False
 
-	for len_it in xrange(99999999):
+	for len_it in range(99999999):
 		if len_it % 500 == 0 and verbose:
-			print 'it {}'.format(len_it)
+			print('it {}'.format(len_it))
 			big_time = time.time()
 		path_indices = []
 		extension_vertices = []
-		for path_idx in xrange(len(paths)):
+		for path_idx in range(len(paths)):
 			if path_lengths[path_idx] >= max_path_length:
 				continue
 			extension_vertex = paths[path_idx].pop()
@@ -145,7 +150,7 @@ def eval(paths, m, session, max_path_length=MAX_PATH_LENGTH, segment_length=SEGM
 		batch_angle_targets = numpy.zeros((len(path_indices), 64), 'float32')
 		inputs_per_path = 1
 
-		for i in xrange(len(path_indices)):
+		for i in range(len(path_indices)):
 			path_idx = path_indices[i]
 
 			path_input, path_detect_target = model_utils.make_path_input(paths[path_idx], extension_vertices[i], segment_length, window_size=window_size)
@@ -173,13 +178,13 @@ def eval(paths, m, session, max_path_length=MAX_PATH_LENGTH, segment_length=SEGM
 					m.is_training: False,
 					m.inputs: batch_inputs,
 				})
-				batch_angle_outputs = pre_outputs[:, window_size/8, window_size/8, :]
+				batch_angle_outputs = pre_outputs[:, window_size//8, window_size//8, :]
 		else:
 			feed_dict = {
 				m.is_training: False,
 				m.inputs: batch_inputs,
-				m.angle_targets: [x for x in batch_angle_targets for _ in xrange(inputs_per_path)],
-				m.detect_targets: [x for x in batch_detect_targets for _ in xrange(inputs_per_path)],
+				m.angle_targets: [x for x in batch_angle_targets for _ in range(inputs_per_path)],
+				m.detect_targets: [x for x in batch_detect_targets for _ in range(inputs_per_path)],
 			}
 			if ANGLE_ONEHOT:
 				feed_dict[m.angle_onehot] = model_utils.get_angle_onehot(ANGLE_ONEHOT)
@@ -187,7 +192,7 @@ def eval(paths, m, session, max_path_length=MAX_PATH_LENGTH, segment_length=SEGM
 
 		if inputs_per_path > 1:
 			actual_outputs = numpy.zeros((len(path_indices), 64), 'float32')
-			for i in xrange(len(path_indices)):
+			for i in range(len(path_indices)):
 				actual_outputs[i, :] = batch_angle_outputs[i*inputs_per_path:(i+1)*inputs_per_path, :].max(axis=0)
 			batch_angle_outputs = actual_outputs
 
@@ -211,7 +216,7 @@ def eval(paths, m, session, max_path_length=MAX_PATH_LENGTH, segment_length=SEGM
 			with open(fname + 'meta.txt', 'w') as f:
 				f.write('max angle output: {}\n'.format(batch_angle_outputs[0, :].max()))
 
-		for i in xrange(len(path_indices)):
+		for i in range(len(path_indices)):
 			path_idx = path_indices[i]
 			if len(extension_vertices[i].out_edges) >= 2:
 				threshold = THRESHOLD_BRANCH
@@ -250,7 +255,7 @@ def graph_filter(g, threshold=0.3, min_len=None):
 		avg_prob = numpy.mean(probs)
 		if avg_prob < threshold:
 			bad_edges.update(rs.edges)
-	print 'filtering {} edges'.format(len(bad_edges))
+	print('filtering {} edges'.format(len(bad_edges)))
 	ng = graph.Graph()
 	vertex_map = {}
 	for vertex in g.vertices:
@@ -261,10 +266,10 @@ def graph_filter(g, threshold=0.3, min_len=None):
 	return ng
 
 if __name__ == '__main__':
-	print 'reading tiles'
+	print('reading tiles')
 	tiles = tileloader.Tiles(2, SEGMENT_LENGTH, 16, TILE_MODE)
 
-	print 'initializing model'
+	print('initializing model')
 	m = model.Model(bn=True, size=2048)
 	session = tf.Session()
 	m.saver.restore(session, MODEL_PATH)
@@ -276,7 +281,16 @@ if __name__ == '__main__':
 		return False
 
 	for x, y in TILE_LIST:
-		EXISTING_GRAPH_FNAME = '{}/{}_{}.graph'.format(TILE_GRAPH_PATH, x, y)
+		EXISTING_GRAPH_FNAME = os.path.join(tile_graph_path, '{}_{}.graph'.format(x, y))
+		if not os.path.exists(EXISTING_GRAPH_FNAME):
+			print('skip ({}, {}): no input graph'.format(x, y))
+			continue
+
+		cur_graph_out_fname = os.path.join(out_path, '{}_{}.graph'.format(x, y))
+		if os.path.exists(cur_graph_out_fname):
+			print('skip ({}, {}): already computed outputs'.format(x, y))
+			continue
+
 		r = geom.Rectangle(
 			geom.Point(x*4096, y*4096),
 			geom.Point((x+1)*4096, (y+1)*4096)
@@ -289,7 +303,7 @@ if __name__ == '__main__':
 		tile_data = {
 			'region': REGION,
 			'rect': r,
-			'search_rect': r.add_tol(-WINDOW_SIZE/2),
+			'search_rect': r.add_tol(-WINDOW_SIZE//2),
 			'cache': tiles.cache,
 			'starting_locations': [],
 		}
@@ -300,8 +314,8 @@ if __name__ == '__main__':
 			path.prepend_search_vertex(vertex)
 
 		big_ims = tile_data['cache'].get(tile_data['region'], tile_data['rect'])
-		m6_old = tf_util.apply_conv(session, m, big_ims['input1'], scale=4, channels=64)
-		m6_new = tf_util.apply_conv(session, m, big_ims['input'], scale=4, channels=64)
+		m6_old = tf_util.apply_conv(session, m, big_ims['input'], scale=4, channels=64)
+		m6_new = tf_util.apply_conv(session, m, big_ims['input1'], scale=4, channels=64)
 		#m6_mask = (m6_old < 0.1).astype('float32')
 		m6_mask = m6_old > 0.4
 		import skimage.morphology
@@ -314,12 +328,19 @@ if __name__ == '__main__':
 
 		result = eval([path], m, session, save=False, compute_targets=False, cache_m6=cache_m6, cache_m6_old=m6_old, cache_m6_new=m6_new)
 
-		path.graph.save('{}_{}.graph'.format(x, y))
-		edge_probs = []
+		ng = graph.Graph()
+		vertex_map = {}
 		for edge in path.graph.edges:
-			if hasattr(edge, 'prob'):
-				edge_probs.append(int(edge.prob * 100))
-			else:
-				edge_probs.append(0)
-		with open('{}_{}.json'.format(x, y), 'w') as f:
+			if not hasattr(edge, 'prob'):
+				continue
+			for vertex in [edge.src, edge.dst]:
+				if vertex not in vertex_map:
+					vertex_map[vertex] = ng.add_vertex(vertex.point)
+			new_edge = ng.add_edge(vertex_map[edge.src], vertex_map[edge.dst])
+			new_edge.prob = edge.prob
+		ng.save(cur_graph_out_fname)
+		edge_probs = []
+		for edge in ng.edges:
+			edge_probs.append(int(edge.prob * 100))
+		with open(os.path.join(out_path, '{}_{}.json'.format(x, y)), 'w') as f:
 			json.dump(edge_probs, f)
